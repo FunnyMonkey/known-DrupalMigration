@@ -84,7 +84,7 @@
                   }
 
                   if (!empty($user) && !empty($password)) {
-                    $drupaldbh = new \PDO($connect, $user, $password);
+                    $drupaldbh = new \PDO($connect, $user, $password, array(\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
                   }
                   else {
                     throw new \Exception('Empty username or password.');
@@ -518,12 +518,18 @@
               if (!empty($files)) {
                 foreach($files as $type => $finfo) {
                   foreach ($finfo as $fid => $fileinfo) {
-                    $fileid = 'sites/default/files/' . $fileinfo->uri;
-                    if ($type == 'image' && empty($iconlink)) {
-                      // take the first image as the icon.
-                      $iconlink = '<img class="img-responsive" src="' . \Idno\Core\site()->config()->getDisplayURL() . 'file/' . $fileid . '">';
+                    $fileid = $filemap['sites/default/files/' . $fileinfo->uri];
+                    if ($file = \Idno\Entities\File::getByID($fileid)) {
+                        if ($type == 'image' && empty($iconlink)) {
+                          // take the first image as the icon.
+                          $iconlink = '<img class="img-responsive" src="' . $file->getURL() . '">';
+                        }
+                        $links[$fid] = '<a href="' . $file->getURL() . '">' . htmlspecialchars($fileinfo->filename). '</a>';
                     }
-                    $links[$fid] = '<a href="' . \Idno\Core\site()->config()->getDisplayURL() . 'file/' . $fileid . '">' . htmlspecialchars($fileinfo->filename). '</a>';
+                    else {
+                        // @TODO audit these messages if they show up.
+                        \Idno\Core\site()->session()->addMessage('Unable to load file with ID: ' . $fileid, 'alert-danger');
+                    }
                   }
                 }
               }
@@ -535,9 +541,10 @@
 
               // Add the node
               $object = new \IdnoPlugins\Text\Entry();
-              $object->title = html_entity_decode($node->title);
+              $object->title = html_entity_decode($this->fixEncoding($node->title), ENT_COMPAT, 'UTF-8');
               $object->created = $node->created;
-              $object->body = $this->rewriteContentLinks($node->body);
+              $object->body = $this->rewriteContentLinks($this->fixEncoding($node->body));
+
               if (!$object->body) {
                 return FALSE;
               }
@@ -575,7 +582,9 @@
               \Idno\Core\site()->triggerEvent('site/newuser', array('user' => $newuser)); // Event hook for new user
 
               $filemap = \Idno\Core\site()->config()->drupal_migration_file_map;
-              $newuser->icon = $filemap['sites/default/files/' . $user->uri];
+              if (!empty($user->uri)) {
+                $newuser->icon = $filemap['sites/default/files/' . $user->uri];
+              }
               return $newuser->save();
             }
 
@@ -590,26 +599,42 @@
               $usermap = \Idno\Core\site()->config()->drupal_migration_user_map;
               $filemap = \Idno\Core\site()->config()->drupal_migration_file_map;
 
+              static $rewrites = array();
+
+              if (empty($rewrites)) {
+                foreach ($filemap as $path => $newid) {
+                    if ($file = \Idno\Entities\File::getByID($newid)) {
+                        $newpath = \Idno\Core\site()->config()->url . 'file/' . $file->_id . '/' . urlencode($file->getFilename());
+                        $rewrites[$path] = $newpath;
+                    }
+                    else {
+                        \Idno\Core\site()->session()->addMessage('Could not load file with ID: ' . $newid, 'alert-danger');
+                    }
+                }
+              }
+
               // Fix some broken link styles.
               if (strpos($url, 'http://funnymonkey.com/files/') !== FALSE) {
                 $url = str_replace('http://funnymonkey.com/files/', 'http://funnymonkey.com/sites/default/files/', $url);
               }
-              if (strpos($url, 'http://www.funnymonkey.com/files/') !== FALSE) {
-                $url = str_replace('http://www.funnymonkey.com/files/', 'http://funnymonkey.com//sites/default/files/', $url);
+
+              foreach ($rewrites as $path => $newpath) {
+                $url = str_replace($path, $newpath, $url);
               }
 
-              foreach ($filemap as $path => $newid) {
-                $url = str_replace($path, '/file/' . $newid, $url);
-              }
+              // Remove double slashes
               $url = preg_replace('/\/{2,}/', '/', $url);
+
+              // Remove domain(s)
+              $url = str_replace(\Idno\Core\site()->config()->url, '/', $url);
+              $url = str_replace('http://funnymonkey.com', '/', $url);
+
               return $url;
             }
 
             function rewriteContentLinks($markup) {
               $dom = new \DOMDocument;
-              if (!$dom->loadHTML($markup)) {
-                return FALSE;
-              }
+              @$dom->loadHTML($markup);
 
               $xpath = new \DOMXPath($dom);
               $xpaths = array(
@@ -626,6 +651,15 @@
 
               return $dom->saveHTML();
             }
+
+            function fixEncoding($string) {
+                $encoding = mb_detect_encoding($string, "UTF-8, ASCII, ISO-8859-1", true);
+                if (!empty($encoding)) {
+                    return mb_convert_encoding($string, "UTF-8", $encoding);
+                }
+                return $string;
+            }
+
         }
 
 
