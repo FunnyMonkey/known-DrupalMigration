@@ -14,10 +14,14 @@
           n.nid AS nid,
           n.vid AS vid,
           n.created AS created,
-          b.body_value AS body
+          b.body_value AS body,
+          GROUP_CONCAT(td.name) as terms
         FROM node n
         LEFT JOIN field_data_body b ON (n.nid = b.entity_id AND n.vid = b.revision_id AND b.entity_type = "node" AND b.bundle = n.type)
+        LEFT JOIN field_data_field_fm_topics t ON (n.nid = t.entity_id AND n.vid = t.revision_id AND t.entity_type = "node" AND t.bundle = n.type)
+        LEFT JOIN taxonomy_term_data td ON (t.field_fm_topics_tid = td.tid)
         WHERE n.type IN ("fm_blog")
+        GROUP BY n.nid
         ORDER BY n.created');
 
         define('USER_SQL', 'SELECT
@@ -558,6 +562,23 @@
 
               if (!empty($links)) {
                 $node->body .= '<ul class="file-list"><li>' . implode('<li><li>', $links) . '</li></ul>';
+              }
+
+              $hashtags = array();
+              $terms = explode(',', $node->terms);
+
+              if (!empty($terms)) {
+                foreach ($terms as $term) {
+                    // remove whitespace
+                    $trimmed = str_replace(' ', '', trim($term));
+                    if (!empty($trimmed)) {
+                        $hashtags[] = $trimmed;
+                    }
+                }
+              }
+
+              if (!empty($hashtags)) {
+                $node->body = $node->body . '<p class="tags">#' . implode(', #', $hashtags) . '</p>';
               }
 
               // Add the node
