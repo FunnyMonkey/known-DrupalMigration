@@ -522,9 +522,9 @@
                     if ($file = \Idno\Entities\File::getByID($fileid)) {
                         if ($type == 'image' && empty($iconlink)) {
                           // take the first image as the icon.
-                          $iconlink = '<img class="img-responsive" src="' . $file->getURL() . '">';
+                          $iconlink = '<img class="img-responsive" src="/file/' . $fileid . '">';
                         }
-                        $links[$fid] = '<a href="' . $file->getURL() . '">' . htmlspecialchars($fileinfo->filename). '</a>';
+                        $links[$fid] = '<a href="/file/' . $fileid . '">' . htmlspecialchars($fileinfo->filename). '</a>';
                     }
                     else {
                         // @TODO audit these messages if they show up.
