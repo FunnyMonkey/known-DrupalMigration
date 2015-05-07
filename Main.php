@@ -471,7 +471,7 @@
                   $parts = explode('_', $table);
                   $type = end($parts);
                   $field_prefix = str_replace('field_data_', '', $table);
-                  $sql = 'SELECT f.fid, f.uri, f.filename FROM ' . $table . ' s LEFT JOIN file_managed f ON (f.fid = s.' . $field_prefix . '_fid)
+                  $sql = 'SELECT f.fid, REPLACE(f.uri, "public://", "") as uri, f.filename FROM ' . $table . ' s LEFT JOIN file_managed f ON (f.fid = s.' . $field_prefix . '_fid)
                     WHERE (s.entity_type = "node" AND s.entity_id = :entity_id AND s.revision_id = :revision_id)';
 
                   $stmt = $drupaldbh->prepare($sql);
