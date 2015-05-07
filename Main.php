@@ -613,21 +613,34 @@
                 }
               }
 
-              // Fix some broken link styles.
-              if (strpos($url, 'http://funnymonkey.com/files/') !== FALSE) {
-                $url = str_replace('http://funnymonkey.com/files/', 'http://funnymonkey.com/sites/default/files/', $url);
+              // Fix some broken link styles before we do the other rewrites.
+              $bad = array(
+                'http:/funnymonkey.com' => 'http://funnymonkey.com',
+                'http:/www.funnymonkey.com' => 'http://funnymonkey.com',
+                'http://www.funnymonkey.com' => 'http://funnymonkey.com',
+                'http://funnymonkey.com/files/' => 'http://funnymonkey.com/sites/default/files/',
+              );
+
+              foreach ($bad as $source => $new) {
+                if (strpos($url, $source) !== FALSE) {
+                    $url = str_replace($source, $new, $url);
+                }
               }
 
               foreach ($rewrites as $path => $newpath) {
                 $url = str_replace($path, $newpath, $url);
               }
 
-              // Remove double slashes
-              $url = preg_replace('/\/{2,}/', '/', $url);
-
               // Remove domain(s)
               $url = str_replace(\Idno\Core\site()->config()->url, '/', $url);
-              $url = str_replace('http://funnymonkey.com', '/', $url);
+              $url = str_replace('http://funnymonkey.com/', '/', $url);
+              $url = str_replace('http://www.funnymonkey.com/', '/', $url);
+
+
+              // Remove leading double slashes
+              if (strpos($url, '//') === 0) {
+                $url = preg_replace('/^\/\//', '/', $url);
+              }
 
               return $url;
             }
