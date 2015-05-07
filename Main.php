@@ -54,6 +54,22 @@
         FROM file_managed fm
         ORDER BY fm.timestamp');
 
+        define('COMMENT_SQL', 'SELECT
+            c.cid,
+            c.nid,
+            c.uid,
+            c.subject,
+            c.created,
+            c.name,
+            c.homepage,
+            cb.comment_body_value as body
+        FROM comment c
+        LEFT JOIN field_data_comment_body cb ON (cb.entity_id = c.cid)
+        LEFT JOIN node n ON (n.nid = c.nid)
+        WHERE c.status = 1 AND
+            n.type IN ("fm_blog")
+        ORDER BY c.nid,c.created');
+
         class Main extends \Idno\Common\Plugin {
 
             function registerPages() {
@@ -62,6 +78,7 @@
                 \Idno\Core\site()->addPageHandler('admin/drupalmigration/users','\IdnoPlugins\DrupalMigration\Pages\User');
                 \Idno\Core\site()->addPageHandler('admin/drupalmigration/nodes','\IdnoPlugins\DrupalMigration\Pages\Node');
                 \Idno\Core\site()->addPageHandler('admin/drupalmigration/files','\IdnoPlugins\DrupalMigration\Pages\File');
+                \Idno\Core\site()->addPageHandler('admin/drupalmigration/comments','\IdnoPlugins\DrupalMigration\Pages\Comment');
                 \Idno\Core\site()->template()->extendTemplate('admin/menu/items','admin/drupalmigration/menu');
             }
 
@@ -121,6 +138,10 @@
 
             function getUsers() {
               return $this->getDrupalObjects(USER_SQL);
+            }
+
+            function getComments() {
+                return $this->getDrupalObjects(COMMENT_SQL);
             }
 
             function getFiles() {
@@ -588,11 +609,59 @@
               return $newuser->save();
             }
 
-            function getComments($node) {
-              $comments = array();
-              $drupaldbh = $this->getDbh();
-              //$sql = 'SELECT '
-              return $comments;
+            function addComment($comment) {
+                $nodemap = \Idno\Core\site()->config()->drupal_migration_node_map;
+                $usermap = \Idno\Core\site()->config()->drupal_migration_user_map;
+
+                if ($objectID = array_search($comment->nid, $nodemap)) {
+                    if ($post = \Idno\Common\Entity::getByID($objectID)) {
+                        $userID = array_search($comment->uid, $usermap);
+                        $user = \Idno\Entities\User::getByID($userID);
+
+                        if (!empty($comment->uid)) {
+                            $name = strtolower(trim($comment->name));
+                            $icon = $user->getIcon();
+                            $url = $user->getURL();
+                        }
+                        else {
+                            $name = $comment->name;
+                            if (!empty($comment->homepage)) {
+                                if ($url = \Idno\Core\Webservice::sanitizeURL($comment->homepage)) {
+                                    if ($content = \Idno\Core\Webservice::get($url)) {
+                                        if ($content['response'] == '200') {
+                                            if (!($icon = \Idno\Core\Webmention::getIconFromWebsiteContent($content['content'], $url))) {
+                                                $bn = hexdec(substr(md5($url), 0, 15));
+                                                $number = 1 + ($bn % 5);
+                                                $icon = \Idno\Core\site()->config()->url . 'gfx/users/default-'. str_pad($number, 2, '0', STR_PAD_LEFT) .'.png';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (empty($url)) {
+                                $url = 'http://example.com';
+                            }
+                            if (empty($icon)) {
+                                $bn = hexdec(substr(md5($url), 0, 15));
+                                $number = 1 + ($bn % 5);
+                                $icon = \Idno\Core\site()->config()->url . 'gfx/users/default-'. str_pad($number, 2, '0', STR_PAD_LEFT) .'.png';
+                            }
+                        }
+
+
+                        $annotation_url = $post->getURL() . '/annotations/' . md5(time() . $comment->body);
+                        $body = strip_tags($this->fixEncoding($comment->body));
+                        $name = strip_tags($this->fixEncoding($name));
+                        if ($post->addAnnotation('reply', $name, $url, $icon, $body, null, $comment->created)) {
+                            return $annotation_url;
+                        }
+                    }
+                    else {
+                        return FALSE;
+                    }
+                }
+                return FALSE;
             }
 
             function rewriteURL($url) {
