@@ -5,7 +5,7 @@
     </div>
 
 </div>
-<form action="/admin/drupalmigration/files" class="form-horizontal" method="post">
+
     <div class="row">
         <div class="span10 offset1">
         <h2>File Migration Details</h2>
@@ -14,8 +14,8 @@
 
 <?php
 if (!empty($vars['migrateinfo'])) {
-print '<div class="row">
-    <div class="span10 offset1">
+print '
+    <div class="table-responsive">
     <table class="table-striped table-bordered table-condensed table-hover" >
     <thead>
         <tr>
@@ -23,10 +23,10 @@ print '<div class="row">
             <th>File Name</th>
             <th>File URI</th>
             <th>New ID</th>
-            <th>mod_rewrite</th>
         </tr>
     </thead>
     <tbody>';
+    $rewrites = array();
     foreach ($vars['migrateinfo'] as $row) {
         print '<tr>';
         print '  <td>' . $row['fid'] . "</td>\n";
@@ -34,16 +34,22 @@ print '<div class="row">
         print '  <td>' . $row['uri'] . "</td>\n";
         if ($row['newid']) {
             print '  <td><a href="' . \Idno\Core\site()->config()->getDisplayURL() . 'file/' . $row['newid'] . '/">' . $row['newid'] . "</a></td>\n";
-            print '  <td><pre>RewriteRule "^' . $row['uri'] .'" "file/' . $row['newid'] . '" [L,R=301]</pre></td>';
+            $rewrites[] = 'RewriteRule "^' . $row['uri'] .'" "file/' . $row['newid'] . '" [L,R=301]';
         }
         else {
             print '<td>Not imported</td><td>N/A</td>';
         }
         print '</tr>';
     }
-    print '</tbody></table></div></div>';
-}?>
+    print '</tbody></table></div>';
 
+    print '<h3>Rewrites</h3>';
+    print '<pre><code>';
+    $lines = implode("\n", $rewrites);
+    print $lines;
+    print '</code></pre>';
+}?>
+<form action="/admin/drupalmigration/files" class="form-horizontal" method="post">
     <div class="row">
         <div class="span10 offset1">
 

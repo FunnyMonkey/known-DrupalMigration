@@ -24,10 +24,10 @@ print '<div class="row">
             <th>Comment Name</th>
             <th>Source Post</th>
             <th>Comment URI</th>
-            <th>mod_rewrite</th>
         </tr>
     </thead>
     <tbody>';
+    $rewrites = array();
     foreach ($vars['migrateinfo'] as $row) {
         print '<tr>';
         print '  <td>' . $row['cid'] . "</td>\n";
@@ -35,7 +35,7 @@ print '<div class="row">
         if ($row['newid']) {
             print '  <td><a href="' . $row['posturl'] . '/">' . $row['posttitle'] . "</a></td>\n";
             print '  <td><a href="' . $row['newid'] . '/">' . $row['newid'] . "</a></td>\n";
-            print '  <td><pre>RewriteRule "^comment/' . $row['cid'] . '" "' . $row['newid'] . '" [L,R=301]</pre></td>';
+            $rewrites[] = 'RewriteRule "^comment/' . $row['cid'] . '$" "' . $row['newid'] . '" [L,R=301]';
         }
         else {
             print '<td>N/A</td><td>Not imported</td><td>N/A</td>';
@@ -43,6 +43,12 @@ print '<div class="row">
         print '</tr>';
     }
     print '</tbody></table></div></div>';
+
+    print '<h3>Rewrites</h3>';
+    print '<pre><code>';
+    $lines = implode("\n", $rewrites);
+    print $lines;
+    print '</code></pre>';
 }?>
 
     <div class="row">
