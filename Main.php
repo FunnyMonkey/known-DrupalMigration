@@ -602,7 +602,8 @@
             }
 
             function nodeBody($node) {
-                $paragraphs = explode("\n\n", $node->body);
+                $body = str_replace("\r", "", $node->body);
+                $paragraphs = explode("\n\n", $body);
                 $body = implode("</p><p>", $paragraphs);
                 $body = '<p>' . $body . '</p>';
                 return $body;
