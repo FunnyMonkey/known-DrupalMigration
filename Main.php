@@ -558,6 +558,9 @@
                   }
                 }
               }
+
+              $node->body = $this->nodeBody($node);
+
               $node->body = $iconlink . $node->body;
 
               if (!empty($links)) {
@@ -596,6 +599,13 @@
                 $object->setOwner($user);
               }
               return $object->save(true);
+            }
+
+            function nodeBody($node) {
+                $paragraphs = explode("\n\n", $node->body);
+                $body = implode("</p><p>", $paragraphs);
+                $body = '<p>' . $body . '</p>';
+                return $body;
             }
 
             function addUser($user) {
