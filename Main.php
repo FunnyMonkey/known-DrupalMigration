@@ -672,7 +672,7 @@
                             }
 
                             if (empty($url)) {
-                                $url = 'http://example.com';
+                                $url = '';
                             }
                             if (empty($icon)) {
                                 $bn = hexdec(substr(md5($url), 0, 15));
