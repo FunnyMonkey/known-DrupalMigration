@@ -33,10 +33,12 @@ namespace IdnoPlugins\DrupalMigration\Pages {
                     $row = array();
                     $row['cid'] = $comment->cid;
                     $row['subject'] = $comment->subject;
+                    $row['rewrite'] = '';
                     if ($objectID = array_search($comment->nid, $nodemap) ) {
                         if ($post = \Idno\Common\Entity::getByID($objectID)) {
                             $row['posttitle'] = $post->getTitle();
                             $row['posturl'] = $post->getURL();
+                            $row['rewrite'] = str_replace(\Idno\Core\site()->config()->getDisplayURL(), '/', $post->getURL());
                         }
                         else {
                             $row['posttitle'] = 'Could not load';

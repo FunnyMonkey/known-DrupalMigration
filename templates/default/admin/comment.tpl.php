@@ -35,10 +35,12 @@ print '<div class="row">
         if ($row['newid']) {
             print '  <td><a href="' . $row['posturl'] . '/">' . $row['posttitle'] . "</a></td>\n";
             print '  <td><a href="' . $row['newid'] . '/">' . $row['newid'] . "</a></td>\n";
-            $rewrites[] = 'RewriteRule "^comment/' . $row['cid'] . '$" "' . $row['newid'] . '" [L,R=301]';
+            if (!empty($row['rewrite'])) {
+                $rewrites[] = 'RewriteRule "^comment/' . $row['cid'] . '$" "' . $row['rewrite'] . '" [L,R=301]';
+            }
         }
         else {
-            print '<td>N/A</td><td>Not imported</td><td>N/A</td>';
+            print '<td>N/A</td><td>Not imported</td>';
         }
         print '</tr>';
     }
