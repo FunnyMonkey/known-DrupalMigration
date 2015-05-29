@@ -148,6 +148,16 @@
                 return $this->getDrupalObjects(COMMENT_SQL);
             }
 
+            /**
+             * Drupal has the concept of managed_files, that is files that
+             * Drupal "knows" about. Due to this site having migrated through
+             * several versions of content we have some unmanaged files as well.
+             *
+             * The array of $unmanaged files was obtained from a list of files
+             * in the files dir. We want to normalize all file usage using
+             * Known's method for filehandling. So we dummy up the unmanged files
+             * to present a consistent data structure.
+             */
             function getFiles() {
               $managed_files = $this->getDrupalObjects(FILE_SQL);
 
@@ -487,6 +497,9 @@
               return $managed_files;
             }
 
+            /**
+             * Given a node return a list of drupal file ids that it references.
+             */
             function getNodeFids($node) {
               $tables = explode(',', FILE_TABLES);
               $files = array();
@@ -516,6 +529,9 @@
               return $files;
             }
 
+            /**
+             * Add a file to known
+             */
             function addFile($file) {
               $src = LEGACY_FILES_DIR . '/' . $file->uri;
               $dir = \Idno\Core\site()->config()->getTempDir();
@@ -531,6 +547,9 @@
               return FALSE;
             }
 
+            /**
+             * Add a node to known
+             */
             function addNode($node) {
               $usermap = \Idno\Core\site()->config()->drupal_migration_user_map;
               if (empty($usermap)) {
@@ -601,6 +620,10 @@
               return $object->save(true);
             }
 
+            /**
+             * Drupal automatically rewrites double newlines as <p> tags.
+             * we replicated that behavior to keep content consistent.
+             */
             function nodeBody($node) {
                 $body = str_replace("\r", "", $node->body);
                 $paragraphs = explode("\n\n", $body);
@@ -609,6 +632,9 @@
                 return $body;
             }
 
+            /**
+             * Add a user to known.
+             */
             function addUser($user) {
               $newuser         = new \Idno\Entities\User();
               $newuser->email  = $user->mail;
@@ -641,6 +667,9 @@
               return $newuser->save();
             }
 
+            /**
+             * Add a comment to known.
+             */
             function addComment($comment) {
                 $nodemap = \Idno\Core\site()->config()->drupal_migration_node_map;
                 $usermap = \Idno\Core\site()->config()->drupal_migration_user_map;
@@ -696,6 +725,9 @@
                 return FALSE;
             }
 
+            /**
+             * Rewrite content URLs from the old site.
+             */
             function rewriteURL($url) {
               $usermap = \Idno\Core\site()->config()->drupal_migration_user_map;
               $filemap = \Idno\Core\site()->config()->drupal_migration_file_map;
@@ -746,6 +778,9 @@
               return $url;
             }
 
+            /**
+             * Rip open the content and rewrite old links with the new format
+             */
             function rewriteContentLinks($markup) {
               $dom = new \DOMDocument;
               @$dom->loadHTML($markup);
@@ -766,6 +801,10 @@
               return $dom->saveHTML();
             }
 
+            /**
+             * Some content columns in Drupal were not encoded UTF8.
+             * #DrupalWTF
+             */
             function fixEncoding($string) {
                 $encoding = mb_detect_encoding($string, "UTF-8, ASCII, ISO-8859-1", true);
                 if (!empty($encoding)) {

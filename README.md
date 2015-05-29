@@ -9,6 +9,7 @@ The import should proceed in the following order;
 1. Files
 2. Users
 3. Nodes
+4. Comments
 
 Note that the node migration can take quite a while so it is limited to 20 nodes
 per import request.
