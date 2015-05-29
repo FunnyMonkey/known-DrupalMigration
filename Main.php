@@ -89,7 +89,7 @@
             function getDbh() {
               static $drupaldbh;
 
-              if (empty($dbh)) {
+              if (empty($drupaldbh)) {
                 try {
                   $host = \Idno\Core\site()->config()->drupal_migration_mysql_host;
                   $db = \Idno\Core\site()->config()->drupal_migration_mysql_db;
