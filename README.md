@@ -13,3 +13,5 @@ The import should proceed in the following order;
 
 Note that the node migration can take quite a while so it is limited to 20 nodes
 per import request.
+
+There is also a blog post explaining this code over here: https://funnymonkey.com/2015/migrating-from-drupal-7-to-known
